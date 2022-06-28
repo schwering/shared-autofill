@@ -1,0 +1,502 @@
+<html>
+<head>
+<script>
+const HOSTS = ['schwering', 'battre', 'matthiaskoerber', 'mohamedamir'].map(user => `${user}.github.io`);
+const LABELS = ['Cardholder name', 'Credit card number', 'Expiration date', 'CVC'];
+
+function makeKeyValueRegExp(key) {
+  return new RegExp(`\\b${key}=([^&]*)`);
+}
+
+function setUrlParam(get, set, append, key, value) {
+  if (getUrlParam(get, key) === value)
+    return;
+  key = encodeURIComponent(key);
+  value = value !== undefined ? encodeURIComponent(value) : undefined;
+  const keyValueRegExp = makeKeyValueRegExp(key);
+  const keyValue = `${key}=${value}`;
+  if (value === undefined) {
+    const deleted = get().replace(keyValueRegExp, '').replaceAll('&&', '&').replaceAll('#&', '');
+    set(deleted);
+  } else if (keyValueRegExp.test(get())) {
+    const replaced = get().replace(keyValueRegExp, keyValue);
+    set(replaced);
+  } else {
+    append((get().length > 0 ? '&' : '') + keyValue);
+  }
+}
+
+function getUrlParam(get, key) {
+  key = encodeURIComponent(key);
+  const match = get().match(makeKeyValueRegExp(key));
+  if (!match || match[1] === undefined) {
+    return undefined;
+  }
+  return decodeURIComponent(match[1]);
+}
+
+function setUrlSearchParam(key, value, url) {
+  setUrlParam(() => (url || window.location).search,
+              s => (url || window.location).search = s,
+              s => (url || window.location).search += s,
+              key, value);
+}
+
+function getUrlSearchParam(key, url) {
+  return getUrlParam(() => (url || window.location).search, key);
+}
+
+function setUrlHashParam(key, value, url) {
+  setUrlParam(() => (url || window.location).hash,
+              s => (url || window.location).hash = s,
+              s => (url || window.location).hash += s,
+              key, value);
+}
+
+function getUrlHashParam(key, url) {
+  return getUrlParam(() => (url || window.location).hash, key);
+}
+
+function getIframeSrcOrigin(iframe) {
+  return new URL(iframe.src).origin;
+}
+
+function getIframeSrcHost(iframe) {
+  return new URL(iframe.src).host;
+}
+
+function setIframeSrcHost(iframe, host) {
+  if (!iframe.src) {
+    iframe.src = host;
+  }
+  const url = new URL(iframe.src);
+  url.host = host;
+  iframe.src = url.href;
+}
+
+function setIframeSearchParam(iframe, key, value) {
+  const url = new URL(iframe.src);
+  setUrlSearchParam(key, value, url);
+  iframe.src = url.href;
+}
+
+function getIframeSearchParam(iframe, key, value) {
+  const url = new URL(iframe.src);
+  return getUrlSearchParam(key, url);
+}
+
+function setIframeSrcPath(iframe, path) {
+  const url = new URL(iframe.src);
+  url.pathname = path;
+  iframe.src = url.href;
+}
+
+// Exchange the height of the frame trees to resize the stuff accordingly.
+(function() {
+  // Height of the frame subtree induced by this window.
+  let thisHeight = 0;
+
+  // Heighth of the frame trees induced by the child windows.
+  const childToHeight = new Map();
+
+  function height(win) {
+    return childToHeight.get(win) || 0;
+  }
+
+  function updateIframes() {
+    for (const iframe of document.getElementsByTagName('iframe')) {
+      if (iframe.classList.contains('no-resize'))
+        continue;
+      iframe.style.width = 40 + 'em';
+      iframe.style.height = (4 + 3 * height(iframe.contentWindow)) +'ex';
+      iframe.scrolling = "no";
+      iframe.classList[allowsSharedAutofill(iframe, getIframeSrcOrigin(iframe)) ? 'add' : 'remove']('allow');
+      iframe.classList[iframe.disallowDocumentAccess ? 'add' : 'remove']('disallowdocumentaccess');
+      iframe.classList[iframe.sandbox.length > 0 ? 'add' : 'remove']('sandbox');
+    }
+  }
+
+  function depth() {
+    let d = 0;
+    for (let w = window; w && w != w.parent; w = w.parent) {
+      ++d;
+    }
+    return d;
+  }
+
+  window.addEventListener('message', (event) => {
+    const type = event.data.type;
+    const child = event.source;
+    const childHeight = event.data.height;
+    if (type === 'tree-height' && childHeight !== undefined) {
+      childToHeight.set(child, childHeight);
+      if (thisHeight < childHeight + 1) {
+        thisHeight = childHeight + 1;
+        if (window.parent !== window) {
+          window.parent.postMessage({type: 'tree-height', height: thisHeight}, '*');
+        }
+      }
+      updateIframes();
+    }
+  }, false);
+
+  window.addEventListener('load', function() {
+    window.parent.postMessage({type: 'tree-height', height: thisHeight}, '*');
+  });
+
+  updateIframes();
+})();
+
+function knowsSharedAutofill() {
+  return document.featurePolicy.features().includes('shared-autofill');
+}
+
+function allowsSharedAutofill(iframe, origin) {
+  return knowsSharedAutofill() && iframe.featurePolicy.allowsFeature('shared-autofill', origin);
+}
+
+function getOriginBackground(host) {
+  const COLORS = ['LightSkyBlue', 'lightgreen', 'orange', /*canary yellow*/'#FFEF00'];
+  const i = HOSTS.findIndex(h => h === host);
+  if (i < 0) {
+    return {image: 'linear-gradient(to right, red,orange,yellow,green,blue,indigo,violet)'};
+  } else {
+    return {color: COLORS[i % COLORS.length]};
+  }
+  return r;
+}
+
+function createForm() {
+  const DEFAULT_IFRAME = {
+    host: window.location.host,
+    label: 'Credit card number',
+    'shared-autofill': 'y',
+    sandbox: 'n'
+  };
+  if (!window.location.hash) {
+    const IFRAMES = [
+        {...DEFAULT_IFRAME, host: HOSTS[0], label: LABELS[0]},
+        {...DEFAULT_IFRAME, host: HOSTS[1], label: LABELS[1]},
+        {...DEFAULT_IFRAME, host: HOSTS[1], label: LABELS[2]},
+        {...DEFAULT_IFRAME, host: HOSTS[1], label: LABELS[3]},
+    ];
+    const url = new URL(window.location);
+    for (let i = 0; i < IFRAMES.length; ++i) {
+      for (const [key, value] of Object.entries(IFRAMES[i])) {
+        setUrlHashParam(key + i, value, url);
+      }
+    }
+    window.location.href = url;
+  }
+
+  function createToggle(labelText, key, parent, changeState, getState) {
+    const value = getUrlHashParam(key) || 'n';
+    const toggle = document.createElement('span');
+    toggle.innerHTML = labelText;
+    toggle.classList.add('fake-form-control');
+    toggle.classList.add('toggle');
+    toggle.addEventListener('click', function() {
+      changeState(toggle, !getState());
+    });
+    parent.appendChild(toggle);
+    changeState(toggle, getUrlHashParam(key) === 'y');
+    setInterval(function() {
+      if (!toggle.isConnected)
+        return;
+      const enable = getState();
+      setUrlHashParam(key, enable ? 'y' : 'n');
+      toggle.classList[enable ? 'add' : 'remove']('active');
+    }, 50);
+    return toggle;
+  }
+
+  function createSelect(values, key, parent, changeState, getState) {
+    const select = document.createElement('span');
+    const options = document.createElement('div');
+    function createOption(value) {
+      const option = document.createElement('div');
+      option.innerText = value;
+      option.classList.add('fake-form-control');
+      option.classList.add('option');
+      option.style.backgroundColor = getOriginBackground(value).color || 'lightgrey';
+      option.addEventListener('mousedown', function() {
+        option.classList.add('active');
+      });
+      option.addEventListener('click', function() {
+        option.classList.remove('active');
+        options.classList.remove('active');
+        select.classList.remove('active');
+        changeState(select, value);
+      });
+      options.appendChild(option);
+      return option;
+    }
+    select.classList.add('fake-form-control');
+    select.classList.add('select');
+    select.classList.remove('active');
+    options.classList.add('fake-form-control');
+    options.classList.add('options');
+    options.classList.remove('active');
+    for (const value of values) {
+      createOption(value, options);
+    }
+    select.addEventListener('click', function(e) {
+      select.classList.add('active');
+      options.classList.add('active');
+      options.style.top = select.offsetTop + select.offsetHeight;
+      options.style.left = select.offsetLeft;
+    });
+    parent.appendChild(select);
+    document.body.appendChild(options);
+    document.body.addEventListener('click', function() {
+      options.classList.remove('active');
+      select.classList.remove('active');
+    }, true);
+    changeState(select, getUrlHashParam(key) || getState());
+    setInterval(function() {
+      if (!select.isConnected)
+        return;
+      const value = getState();
+      setUrlHashParam(key, value);
+      select.innerText = value;
+    }, 50);
+    return select;
+  }
+
+  function createButton(labelText, clickAction) {
+    const span = document.createElement('span');
+    span.classList.add('fake-form-control');
+    span.classList.add('button');
+    span.innerText = labelText;
+    span.addEventListener('click', clickAction);
+    return span;
+  }
+
+  function augmentIframe(iframe, i) {
+    const parent = iframe.parentElement;
+    const iframeContent = document.createElement('div');
+
+    let hostSelect = undefined;
+    let fileSelect = undefined;
+
+    hostSelect = createSelect(['main frame', ...HOSTS], 'host' + i, parent, function(select, host) {
+      if (host === 'main frame') {
+        setIframeSrcHost(iframe, window.location.host);
+        setTimeout(function() {
+          iframeContent.innerHTML = iframe.contentWindow.document.body.innerHTML;
+          iframeContent.style.width = iframe.style.width;
+          iframeContent.style.display = 'inline-block';
+          parent.insertBefore(iframeContent, iframe);
+          iframe.remove();
+        }, 500);
+      } else {
+        if (!iframe.isConnected) {
+          iframeContent.parentElement.insertBefore(iframe, iframeContent);
+          iframeContent.remove();
+        }
+        setIframeSrcHost(iframe, host);
+      }
+    }, function() {
+      const host = iframe.isConnected ? getIframeSrcHost(iframe) : 'main frame';
+      setTimeout(function() {
+        hostSelect.style.backgroundColor = getOriginBackground(host).color || 'lightgrey';
+        fileSelect.style.backgroundColor = getOriginBackground(host).color || 'lightgrey';
+      }, 0);
+      return host;
+    });
+
+    hostSelect.style.marginLeft = '2em';
+
+    parent.appendChild(document.createTextNode(' / '));
+
+    fileSelect = createSelect([...LABELS], 'label' + i, parent, function(select, label) {
+      if (hostSelect.innerText === 'main frame') {
+        if (!iframe.isConnected) {
+          iframeContent.parentElement.insertBefore(iframe, iframeContent);
+          iframeContent.remove();
+        }
+        setIframeSrcHost(iframe, window.location.host);
+        setIframeSearchParam(iframe, 'label', label);
+        setTimeout(function() {
+          iframeContent.innerHTML = iframe.contentWindow.document.body.innerHTML;
+          iframeContent.style.width = iframe.style.width;
+          iframeContent.style.display = 'inline-block';
+          parent.insertBefore(iframeContent, iframe);
+          iframe.remove();
+        }, 500);
+      } else {
+        setIframeSearchParam(iframe, 'label', label);
+      }
+    }, function() {
+      return getIframeSearchParam(iframe, 'label');
+    });
+
+    parent.appendChild(document.createTextNode(' with '));
+
+    const sharedAutofillToggle = createToggle('shared-autofill', 'shared-autofill' + i, parent, function(toggle, enable) {
+      if (!knowsSharedAutofill()) {
+        return;
+      }
+      iframe.setAttribute('allow', enable ? 'shared-autofill' : '');
+      iframe.src = iframe.src;
+    }, function(toggle) {
+      return !iframe.isConnected || allowsSharedAutofill(iframe, getIframeSrcOrigin(iframe));
+    });
+    if (!knowsSharedAutofill()) {
+      sharedAutofillToggle.classList.add('disabled');
+    }
+
+    parent.appendChild(document.createTextNode(' and '));
+
+    createToggle('sandbox', 'sandbox' + i, parent, function(toggle, enable) {
+      if (enable) {
+        iframe.setAttribute('sandbox', 'allow-scripts');
+      } else {
+        iframe.removeAttribute('sandbox');
+      }
+      iframe.src = iframe.src;
+    }, function(toggle) {
+      return iframe.sandbox.length > 0;
+    });
+  }
+
+  function pushFrame() {
+    const form = document.forms[0];
+    const div = document.createElement('div');
+    form.insertBefore(div, form.querySelector('input[type=submit]'));
+
+    const i = document.getElementsByTagName('iframe').length;
+    for (const [key, value] of Object.entries(DEFAULT_IFRAME)) {
+      if (getUrlHashParam(key + i) === undefined)
+        setUrlHashParam(key + i, value);
+    }
+
+    const iframe = document.createElement('iframe');
+    setIframeSrcHost(iframe, getUrlHashParam('host' + i));
+    setIframeSrcPath(iframe, window.location.pathname);
+    setIframeSearchParam(iframe, 'field', 'y');
+    div.appendChild(iframe);
+    augmentIframe(iframe, i);
+  }
+
+  function popFrameOrField() {
+    const div = document.forms[0].lastElementChild.previousElementSibling;
+    let i = 0;
+    for (let e = div.previousElementSibling; e; e = e.previousElementSibling) {
+      ++i;
+    }
+    div.remove();
+    for (const [key, value] of Object.entries(DEFAULT_IFRAME)) {
+      setUrlHashParam(key + i, undefined);
+    }
+  }
+
+  const form = document.createElement('form');
+  form.action = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+  if (window.parent === window) {
+    const submitButton = document.createElement('input');
+    submitButton.type = 'submit';
+    form.appendChild(submitButton);
+  }
+  document.body.appendChild(form);
+  document.body.appendChild(createButton('Push frame', pushFrame));
+  document.body.appendChild(createButton('Pop frame/field', popFrameOrField));
+  document.body.appendChild(createButton('Reset', function() { window.location.href = ''; }));
+  document.body.appendChild(createButton('Duplicate', function() {
+    while (document.body.firstChild) {
+      document.body.firstChild.remove();
+    }
+    for (let i = 0; i < 2; ++i) {
+      const iframe = document.createElement('iframe');
+      iframe.classList.add('no-resize');
+      iframe.src = window.location.href;
+      iframe.style.width = '98%';
+      iframe.style.height = '47%';
+      document.body.appendChild(iframe);
+    }
+  }));
+
+  const iframes = document.getElementsByTagName('iframe');
+  for (let i = 0; getUrlHashParam('host'+ i) !== undefined; ++i) {
+    pushFrame();
+  }
+
+  if (!knowsSharedAutofill()) {
+    const div = document.createElement('div');
+    div.innerHTML = `<span style="background-color: orange; border: 0.5ex solid red; padding: 1ex; font-weight: bold;">Your browser does not support shared-autofill.</span>`;
+    div.style.textAlign = 'center';
+    div.addEventListener('click', function() { div.remove(); });
+    document.body.insertBefore(div, document.body.firstElementChild);
+  }
+}
+
+function createField() {
+  const depth = getUrlSearchParam('depth');
+  const label = getUrlSearchParam('label');
+  const id = 'field';
+  const sharedAutofill = getUrlSearchParam('shared-autofill');
+  const sandbox = getUrlSearchParam('sandbox');
+
+  if (depth === undefined || depth === 0) {
+    const l = document.createElement('label');
+    const i = document.createElement('input');
+    l.innerText = label +': ';
+    l.for = id;
+    i.type = 'text';
+    i.id = id;
+    document.body.appendChild(l);
+    document.body.appendChild(i);
+  } else if (depth > 0) {
+    const e = document.createElement('iframe');
+    e.src = iframe;
+    if (sandbox === 'y') {
+      e.setAttribute('sandbox', 'allow-scripts');
+    }
+    if (sharedAutofill === 'y') {
+      e.setAttribute('allow', 'shared-autofill');
+    }
+    document.body.appendChild(e);
+  }
+}
+
+window.addEventListener('load', function() {
+  const path = window.location.pathname;
+  const file = path.substring(path.lastIndexOf('/') + 1);
+  document.title = (file.substring(0, file.lastIndexOf('.'))  || file).split('-').filter(s => s !== 'cc').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+  const bg = getOriginBackground(window.location.host);
+  document.body.style.backgroundColor = bg.color;
+  document.body.style.backgroundImage = bg.image;
+
+  if (getUrlSearchParam('field') !== 'y') {
+    createForm();
+  } else {
+    createField();
+  }
+});
+</script>
+<style>
+body { font-family: sans-serif; padding: .25ex; padding-top: 0; }
+div { padding-top: 1ex; padding-bottom: 1ex; }
+iframe { overflow: auto; vertical-align: middle; }
+iframe:not(:first-child) { margin-top: 2ex; margin-bottom: 2ex; }
+iframe { border: 3pt solid white; }
+iframe.allow { border: 3pt dotted green; }
+iframe.sandbox { border: 3pt solid black; }
+.fake-form-control { cursor: pointer; margin: 0.5ex; padding: 0.5ex; user-select: none; white-space: nowrap; }
+.fake-form-control.button { border: 3px solid; }
+.fake-form-control.select { border: 3px solid; }
+.fake-form-control.select:after { content: ' \2B07'; }
+.fake-form-control.options { background-color: black; border: 1px solid black; display: none; margin: 0; padding: 0; position: absolute; }
+.fake-form-control.options.active { display: block; }
+.fake-form-control.option { border: 2px solid black; margin: 0; text-decoration: none; }
+.fake-form-control.option:hover { text-decoration: underline; }
+.fake-form-control.toggle { border-style: outset; }
+.fake-form-control.toggle.active { border-style: inset; }
+.fake-form-control.disabled { color: grey; cursor: not-allowed; }
+label { display: inline-block; padding-right: 0.5em; }
+</style>
+<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+</head>
+<body>
+</body>
+</html>
