@@ -82,18 +82,17 @@ The following table illustrates which fields may be autofilled depending on the 
 
 In more detail: if an autofill's origin is ...
 * `https://merchant.example`, then
-  - `name` and `exp` may be autofilled because of the same-origin clause
-  - `num` and `cvc` may be autofilled because their inherited policies enable `shared-autofill` on `https://psp.example`
-  - `account` must not be autofilled because the inherited policy disallows `shared-autofill` and they're cross-origin
-  because either `shared-autofill`
+  - `name` and `exp` may be autofilled because of the same-origin clause;
+  - `num` and `cvc` may be autofilled because their inherited policies enable `shared-autofill` on `https://psp.example`;
+  - `account` must not be autofilled because the inherited policy disallows `shared-autofill` and they're cross-origin;
 * `https://psp.example`, then
-  - `name` and `exp` may be autofilled because the default allowlist enables `shared-autofill` in the top-level document
-  - `num` and `cvc` may be autofilled because of the same-origin clause
-  - `account` must not be autofilled because the inherited policy disallows `shared-autofill` and they're cross-origin
+  - `name` and `exp` may be autofilled because the default allowlist enables `shared-autofill` in the top-level document;
+  - `num` and `cvc` may be autofilled because of the same-origin clause;
+  - `account` must not be autofilled because the inherited policy disallows `shared-autofill` and they're cross-origin;
 * `https://ads.example`, then
-  - `name` and `exp` may be autofilled because the default allowlist enables `shared-autofill` in the top-level document
-  - `num` and `cvc` must not be autofilled because the inherited policy disallows `shared-autofill` and they're cross-origin
-  - `account` may be autofilled because of the same-origin clause
+  - `name` and `exp` may be autofilled because the default allowlist enables `shared-autofill` in the top-level document;
+  - `num` and `cvc` must not be autofilled because the inherited policy disallows `shared-autofill` and they're cross-origin;
+  - `account` may be autofilled because of the same-origin clause.
 
 Since `shared-autofill` is only a necessary condition, the browser can impose further restrictions on when to autofill a form control in a cross-origin frame.
 For example, it may exclude credit card numbers from cross-origin autofills, or it may decide not to autofill across frames altogether.
@@ -118,7 +117,7 @@ Then, they could make use of `shared-autofill` to trick the user, for example, i
 Due to `shared-autofill`, this also fills the payment form in the attacker's child frame.
 Next, the attacker click-jacks the user into submitting the form.
 
-However, it's likely that the attacker could also click-jack the user into autofilling the form in the iframe directly – entirely without `shared-autofill`.
+However, the attacker could likely also click-jack the user into autofilling the form in the iframe directly – entirely without `shared-autofill`.
 Also, an attacker who controls the parent frame arguably has much simpler means to steal the payment information by manipulating the parent frame directly.
 
 **Case 2.**
