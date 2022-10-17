@@ -148,7 +148,7 @@ function setIframeSrcPath(iframe, path) {
 })();
 
 function knowsSharedAutofill() {
-  return document.featurePolicy.features().includes('shared-autofill');
+  return document.featurePolicy && document.featurePolicy.features().includes('shared-autofill');
 }
 
 function allowsSharedAutofill(iframe, origin) {
