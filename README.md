@@ -43,7 +43,7 @@ The browser shall treat this feature as a necessary condition for autofilling ac
 
 **Terminology.**
 * An *autofill* is a single operation that fills multiple form controls of the [fully active documents](https://html.spec.whatwg.org/multipage/browsers.html#fully-active).
-* An *autofill's origin* is the [origin of the document](https://dom.spec.whatwg.org/#concept-document-origin) that [has focus](https://html.spec.whatwg.org/multipage/interaction.html#has-focus-steps).
+* An *autofill's origin* is null if no element is [focused](https://html.spec.whatwg.org/interaction.html#focused); otherwise it is the [focused](https://html.spec.whatwg.org/interaction.html#focused) element's [node document](https://dom.spec.whatwg.org/#concept-node-document)'s [origin](https://dom.spec.whatwg.org/#concept-document-origin).
 
 In our above example, when the user focuses the cardholder-name field and autofills the form, the autofill's origin is `https://merchant.example`.
 The semantics of `shared-autofill` shall be as follows:
@@ -53,7 +53,7 @@ An autofill *A* may fill a form control *FC* only if
 * *A* and *FC*'s document have the [same origin](https://html.spec.whatwg.org/multipage/origin.html#same-origin) or
 * `shared-autofill` is [enabled in *FC*'s document for *FC*'s document's origin](https://w3c.github.io/webappsec-permissions-policy/#algo-is-feature-enabled).
 
-The default allowlist of `shared-autofill` shall be `self`.
+The default allowlist of `shared-autofill` shall be `'self'`.
 
 # Discussion
 
@@ -71,7 +71,7 @@ Let us validate the definition with the above example, now assuming the merchant
 </form>
 ```
 
-The `shared-autofill` feature is enabled (only) in the top-level document (due to the default allowlist `self`) and the two PSP documents (by the [inherited policy](https://w3c.github.io/webappsec-permissions-policy/#algo-define-inherited-policy-in-container) whose target list [defaults to `src`](https://w3c.github.io/webappsec-permissions-policy/#declared-origin)).
+The `shared-autofill` feature is enabled (only) in the top-level document (due to the default allowlist `'self'`) and the two PSP documents (by the [inherited policy](https://w3c.github.io/webappsec-permissions-policy/#algo-define-inherited-policy-in-container) whose target list [defaults to `'src'`](https://w3c.github.io/webappsec-permissions-policy/#iframe-allow-attribute)).
 The following table illustrates which fields may be autofilled depending on the autofill's origin:
 
 | Origin                     | `name`   | `num`    | `exp`    | `cvc`    | `account` |
@@ -135,5 +135,4 @@ For example, the HTTP header `Permissions-Policy: shared-autofill=(self "https:/
 ## Demo
 
 Chrome 93.0.4577.0 or later includes an experimental implementation when run with the flags `--enable-features=AutofillAcrossIframes,AutofillSharedAutofill`.
-There's a [test page](https://schwering.github.io/shared-autofill/form.html) and a [video of the user experience](https://drive.google.com/file/d/1ToX_Q3QdQW1fGqjBVYaBq9Z1zZMTF77N/view?usp=sharing).
-
+There's a [test page](https://schwering.github.io/shared-autofill/form.html) and a [video of the user experience](https://www.youtube.com/watch?v=YDH19FygOa4).
