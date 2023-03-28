@@ -26,7 +26,10 @@ This is particularly common with payment forms, where the individual form contro
 </form>
 ```
 
-For the merchant, this design combines security and flexibility: the cross-origin iframes isolate the sensitive payment information from the merchant's infrastructure (which helps them with [PCI DSS](https://www.pcisecuritystandards.org/) compliance), yet the merchant can arrange and style the fields in their website's look and feel.
+For the merchant, this design combines flexibility and security.
+On the one hand, the merchant retains control over their website's look and feel: when each iframe contains only one form control and no other visible elements, the merchant can treat the iframe as if it was a form control when it comes its to properties like display behavior, dimensions, or position.
+On the other hand, cross-origin iframes isolate the sensitive payment information from the merchant's infrastructure, which makes it easier for the merchant to comply with the [Payment Card Industry Data Security Standard (PCI DSS)](https://www.pcisecuritystandards.org/): Section 2.2.3 of the [best-practices supplement](https://listings.pcisecuritystandards.org/pdfs/best_practices_securing_ecommerce.pdf) states that
+> a merchant implementing an e-commerce solution that uses iFrames [...] may be eligible to assess its compliance using [...] the smallest possible subset of PCI DSS requirements, because most of the PCI DSS requirements are outsourced to the PSP.
 
 From the browser perspective, this means that there are common and legitimate use-cases of multi-frame forms.
 This raises questions about the security model of  cross-origin iframes.
