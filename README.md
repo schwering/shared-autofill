@@ -41,7 +41,7 @@ This example illustrates that the same-origin policy is a solid baseline for aut
 
 ## Proposal
 
-We propose a new policy-controlled feature `shared-autofill` by which a parent frame can designate the trustworthiness of iframes as far as Autofill is concerned.
+We propose a new policy-controlled feature `shared-autofill` by which a parent document can designate the trustworthiness of child documents as far as Autofill is concerned.
 The browser shall treat this feature as a necessary condition for autofilling across origins.
 
 **Terminology.**
@@ -81,24 +81,25 @@ The following table illustrates which fields may be autofilled depending on the 
 |----------------------------|:--------:|:--------:|:--------:|:--------:|:---------:|
 | `https://merchant.example` | &#10004; | &#10004; | &#10004; | &#10004; | &#10006;  |
 | `https://psp.example`      | &#10004; | &#10004; | &#10004; | &#10004; | &#10006;  |
-| `https://ads.example`      | &#10004; | &#10006; | &#10004; | &#10006; | &#10004;  |
+| `https://ads.example`      | &#10004; | &#10004; | &#10004; | &#10004; | &#10004;  |
 
 In more detail: if an autofill's origin is ...
 * `https://merchant.example`, then
   - `name` and `exp` may be autofilled because of the same-origin clause;
   - `num` and `cvc` may be autofilled because their inherited policies enable `shared-autofill` on `https://psp.example`;
-  - `account` must not be autofilled because the inherited policy disallows `shared-autofill` and they're cross-origin;
+  - `account` must not be autofilled because the inherited policy disallows `shared-autofill` and it's cross-origin;
 * `https://psp.example`, then
   - `name` and `exp` may be autofilled because the default allowlist enables `shared-autofill` in the top-level document;
   - `num` and `cvc` may be autofilled because of the same-origin clause;
-  - `account` must not be autofilled because the inherited policy disallows `shared-autofill` and they're cross-origin;
+  - `account` must not be autofilled because the inherited policy disallows `shared-autofill` and it's cross-origin;
 * `https://ads.example`, then
   - `name` and `exp` may be autofilled because the default allowlist enables `shared-autofill` in the top-level document;
-  - `num` and `cvc` must not be autofilled because the inherited policy disallows `shared-autofill` and they're cross-origin;
+  - `num` and `cvc` may be autofilled because their inherited policies enable `shared-autofill` on `https://psp.example`;
   - `account` may be autofilled because of the same-origin clause.
 
 Since `shared-autofill` is only a necessary condition, the browser can impose further restrictions on when to autofill a form control in a cross-origin frame.
-For example, it may exclude credit card numbers from cross-origin autofills, or it may decide not to autofill across frames altogether.
+For example, it may limit filling highly sensitive data like credit card numbers to documents whose origin is a descendant of the autofill's origin.
+ALso, the user agent may just decide not to autofill across frames altogether.
 
 Note that the semantics of `shared-autofill` is based only on the focused document.
 It thus abstracts from the typical interaction flow that begins with the user focussing a field.
@@ -114,26 +115,32 @@ Such an attack presupposes that the parent document explicitly enables `shared-a
 We consider two cases:
 
 **Case 1.**
-The attacker controls the parent frame.
+The attacker controls the parent document.
+They trick the user into filling and submitting a form in a descendant frame.
 
-Then, they could make use of `shared-autofill` to trick the user, for example, into executing a payment: the attacker embeds an invisible iframe that loads a cross-origin payment form, and tricks the user into autofilling a, say, cardholder-name field in the parent frame.
-Due to `shared-autofill`, this also fills the payment form in the attacker's child frame.
-Next, the attacker click-jacks the user into submitting the form.
+The attacker tricks the user into autofilling a, say, cardholder-name field. The attacker has embedded an invisible iframe that contains a cross-origin payment form and has enabled `shared-autofill` in that child document.
+Due to `shared-autofill`, the autofill in the parent document may fill in the attacker's payment form.
+The attacker then click-jacks the user into submitting the payment form.
 
-However, the attacker could likely also click-jack the user into autofilling the form in the iframe directly – entirely without `shared-autofill`.
-Also, an attacker who controls the parent frame arguably has much simpler means to steal the payment information by manipulating the parent frame directly.
+The attack relies on `shared-autofill` because the attacker cannot access the payment form directly.
+However, the attacker can likely also click-jack the user into autofilling the form in the iframe directly – entirely without `shared-autofill`.
+Also, the attacker arguably has much simpler means to steal the payment information by manipulating the parent document directly.
 
 **Case 2.**
-The attacker only controls the child frame.
+The attacker controls a document where `shared-autofill` is enabled.
+They steal autofilled values.
 
-If the parent document enabled `shared-autofill` in that child document, the attacker could add a payment form to the child document and steal any values autofilled into these fields.
+The attacker adds a, say, payment form to the document they control and where `shared-autofill` is enabled.
+They speculate on an autofill happening in another document.
+Due to `shared-autofill`, the autofill in that document may also fill the attacker-controlled payment form.
 
-In this case, `shared-autofill` is a key component of the attack.
-However, it fundamentally relies incorrect and dangerous use of `shared-autofill` on the parent document's end.
+The attack relies on `shared-autofill` because the attacker cannot access the document where the autofill happened directly.
+Unless the attacker-controlled frame is the main frame, this requires a dangerous use of `shared-autofill` in the parent frame of the attacker-controlled frame.
 
 **Mitigation.**
-In either case, the parent document's policy could effectively override any malicious `allow="shared-autofill"` attributes (because the document policy [takes precedence](https://w3c.github.io/webappsec-permissions-policy/#algo-define-inherited-policy-in-container) over the container policy).
+A parent document's policy can effectively override any malicious `allow="shared-autofill"` attributes (because the document policy [takes precedence](https://w3c.github.io/webappsec-permissions-policy/#algo-define-inherited-policy-in-container) over the container policy).
 For example, the HTTP header `Permissions-Policy: shared-autofill=(self "https://psp.example")` implicitly prevents all origins except for `https://psp.example` from inheriting shared-autofill.
+This mitigates both cases except the scenario of Case 2 where the attacker controls the main frame.
 
 ## Demo
 
