@@ -45,7 +45,7 @@ We propose a new policy-controlled feature `shared-autofill` by which a parent d
 The browser shall treat this feature as a necessary condition for autofilling across origins.
 
 **Terminology.**
-* An *autofill* is a single operation that fills multiple form controls of the [fully active documents](https://html.spec.whatwg.org/multipage/browsers.html#fully-active).
+* An *autofill* is a single operation that fills multiple form controls of the [fully active descendant of a top-level traversable with user attention](https://html.spec.whatwg.org/multipage/interaction.html#fully-active-descendant-of-a-top-level-traversable-with-user-attention).
 * An *autofill's origin* is null if no element is [focused](https://html.spec.whatwg.org/interaction.html#focused); otherwise it is the [focused](https://html.spec.whatwg.org/interaction.html#focused) element's [node document](https://dom.spec.whatwg.org/#concept-node-document)'s [origin](https://dom.spec.whatwg.org/#concept-document-origin).
 
 In our above example, when the user focuses the cardholder-name field and autofills the form, the autofill's origin is `https://merchant.example`.
@@ -99,7 +99,7 @@ In more detail: if an autofill's origin is ...
 
 Since `shared-autofill` is only a necessary condition, the browser can impose further restrictions on when to autofill a form control in a cross-origin frame.
 For example, it may limit filling highly sensitive data like credit card numbers to documents whose origin is a descendant of the autofill's origin.
-ALso, the user agent may just decide not to autofill across frames altogether.
+Also, the user agent may just decide not to autofill across frames altogether.
 
 Note that the semantics of `shared-autofill` is based only on the focused document.
 It thus abstracts from the typical interaction flow that begins with the user focussing a field.
