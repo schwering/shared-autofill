@@ -2,7 +2,12 @@
 <head>
 <script>
 const HOSTS = ['schwering', 'battre', 'matthiaskoerber', 'mohamedamir'].map(user => `${user}.github.io`);
-const LABELS = ['Cardholder name', 'Credit card number', 'Expiration date', 'CVC'];
+const FIELD_TYPES = [
+  {label: 'Cardholder name', autocomplete: 'cc-name'},
+  {label: 'Credit card number', autocomplete: 'cc-number'},
+  {label: 'Expiration date', autocomplete: 'cc-exp'},
+  {label: 'CVC', autocomplete: 'cc-csc'}
+];
 
 function makeKeyValueRegExp(key) {
   return new RegExp(`\\b${key}=([^&]*)`);
@@ -175,10 +180,10 @@ function createForm() {
   };
   if (!window.location.hash) {
     const IFRAMES = [
-        {...DEFAULT_IFRAME, host: HOSTS[0], label: LABELS[0]},
-        {...DEFAULT_IFRAME, host: HOSTS[1], label: LABELS[1]},
-        {...DEFAULT_IFRAME, host: HOSTS[1], label: LABELS[2]},
-        {...DEFAULT_IFRAME, host: HOSTS[1], label: LABELS[3]},
+        {...DEFAULT_IFRAME, host: HOSTS[0], label: FIELD_TYPES[0].label},
+        {...DEFAULT_IFRAME, host: HOSTS[1], label: FIELD_TYPES[1].label},
+        {...DEFAULT_IFRAME, host: HOSTS[1], label: FIELD_TYPES[2].label},
+        {...DEFAULT_IFRAME, host: HOSTS[1], label: FIELD_TYPES[3].label},
     ];
     const url = new URL(window.location);
     for (let i = 0; i < IFRAMES.length; ++i) {
@@ -309,7 +314,7 @@ function createForm() {
 
     parent.appendChild(document.createTextNode(' / '));
 
-    fileSelect = createSelect([...LABELS], 'label' + i, parent, function(select, label) {
+    fileSelect = createSelect(FIELD_TYPES.map(ft => ft.label), 'label' + i, parent, function(select, label) {
       if (hostSelect.innerText === 'main frame') {
         if (!iframe.isConnected) {
           iframeContent.parentElement.insertBefore(iframe, iframeContent);
@@ -434,6 +439,7 @@ function createField() {
   const depth = getUrlSearchParam('depth');
   const label = getUrlSearchParam('label');
   const id = 'field';
+  const autocomplete = (FIELD_TYPES.find(ft => ft.label === label) || {}).autocomplete;
   const sharedAutofill = getUrlSearchParam('shared-autofill');
   const sandbox = getUrlSearchParam('sandbox');
 
@@ -444,6 +450,7 @@ function createField() {
     l.for = id;
     i.type = 'text';
     i.id = id;
+    i.autocomplete = autocomplete;
     document.body.appendChild(l);
     document.body.appendChild(i);
   } else if (depth > 0) {
